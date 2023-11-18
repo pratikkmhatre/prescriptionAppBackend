@@ -2,10 +2,12 @@
 
 Patient routes
 
-router.post("/login");
+router.post("/signup"); //new registration
 
-router.get("/dashboard");
+router.post("/login"); //login patient
 
-router.post("/newconsultation/:doctorId");
+router.get("/dashboard"); //data on patient dashboard -all the doctors list
 
-router.get("/details/:id");
+router.post("/newconsultation/:doctorId"); //creating new consultation
+
+router.get("/details/:id"); //getting patient details
