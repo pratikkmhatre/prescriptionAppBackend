@@ -48,6 +48,11 @@ app.use((err, req, res, next) => {
   }
 });
 
+app.get("/", (req, res) => {
+  res.send({
+    message: "Welcome",
+  });
+});
 sequelize
   .sync()
   .then(() => {
