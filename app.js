@@ -96,7 +96,9 @@ app.use("/patient/public", express.static(path.join(__dirname, "public")));
 
 app.use("/patient", patientRoutes);
 app.use("/doctor", doctorRoutes);
-
+app.get("/",(req,res)=>{
+  res.send("Hello")
+})
 Doctor.hasMany(Patient);
 Doctor.hasMany(Consultation);
 
