@@ -1,8 +1,10 @@
 const Patient = require("../models/patients");
 const Doctors = require("../models/doctors");
 const Consultation = require("../models/consulations");
+const Prescript = require("../models/prescriptions");
 const fs = require("fs");
 const jwt = require("jsonwebtoken");
+const Razorpay = require("razorpay");
 
 require("dotenv").config();
 
@@ -15,47 +17,47 @@ function isstringinvalid(string) {
 }
 
 //signup for patient
-const signup = async (req, res) => {
-  console.log(req.file);
-  try {
-    const {
-      name,
-      age,
-      email,
-      phoneNo,
-      historyOfSurgery,
-      historyOfIllness,
-      password,
-    } = req.body;
-    let imgUrl;
-    if (req.file) {
-      imgUrl = `storage/images/${req.file.filename}`;
-    }
+// const signup = async (req, res) => {
+//   console.log(req.file);
+//   try {
+//     const {
+//       name,
+//       age,
+//       email,
+//       phoneNo,
+//       historyOfSurgery,
+//       historyOfIllness,
+//       password,
+//     } = req.body;
+//     let imgUrl;
+//     if (req.file) {
+//       imgUrl = `storage/images/${req.file.filename}`;
+//     }
 
-    console.log("email", email);
-    if (
-      isstringinvalid(name) ||
-      isstringinvalid(email || isstringinvalid(password))
-    ) {
-      return res
-        .status(400)
-        .json({ err: "Bad parameters . Something is missing" });
-    }
-    await Patient.create({
-      profileImage: imgUrl,
-      name,
-      age,
-      email,
-      phoneNo,
-      historyOfSurgery,
-      historyOfIllness,
-      password,
-    });
-    res.status(201).json({ message: "Patient registration successful" });
-  } catch (err) {
-    res.status(500).json(err);
-  }
-};
+//     console.log("email", email);
+//     if (
+//       isstringinvalid(name) ||
+//       isstringinvalid(email || isstringinvalid(password))
+//     ) {
+//       return res
+//         .status(400)
+//         .json({ err: "Bad parameters . Something is missing" });
+//     }
+//     await Patient.create({
+//       profileImage: imgUrl,
+//       name,
+//       age,
+//       email,
+//       phoneNo,
+//       historyOfSurgery,
+//       historyOfIllness,
+//       password,
+//     });
+//     res.status(201).json({ message: "Patient registration successful" });
+//   } catch (err) {
+//     res.status(500).json(err);
+//   }
+// };
 
 const generateAccessToken = (id, name) => {
   return jwt.sign({ patientId: id, name: name }, "secretkey");
@@ -137,6 +139,7 @@ const newConsultation = async (req, res) => {
     others,
     familyHistory,
     patientId,
+    transactionId,
   } = req.body;
   const docId = req.params.doctorId;
   try {
@@ -148,16 +151,53 @@ const newConsultation = async (req, res) => {
       others,
       doctorId: docId,
       patientId,
+      transactionId,
     });
     res.status(201).json({ message: "Consultation added" });
   } catch (err) {
     res.status(500).json(err);
   }
 };
+
+const getPrescription = async (req, res) => {
+  const patientID = req.params.id;
+  try {
+    const prescriptions = await Prescript.findAll({
+      where: { patientId: patientID },
+    });
+    res.status(200).json(prescriptions);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json(err);
+  }
+};
+// //Payment for consultation
+// const feePayment = async (req, res) => {
+//   try {
+//     var rzp = new Razorpay({
+//       key_id: process.env.RAZORPAY_KEY_ID,
+//       key_secret: process.env.RAZORPAY_KEY_SECRET,
+//     });
+//     const amount = 60000;
+
+//     rzp.orders.create({ amount, currency: "INR" }, (err, order) => {
+//       if (!err) {
+//         return res.status(201).json({ order, key_id: rzp.key_id });
+//       } else {
+//         throw new Error(JSON.stringify(err));
+//       }
+//     });
+//   } catch (err) {
+//     console.log(err);
+//     res.status(403).json({ message: "Something went wrong", error: err });
+//   }
+// };
+
 module.exports = {
-  signup,
+  // signup,
   login,
   patientDashboard,
   newConsultation,
   getPatient,
+  getPrescription,
 };

@@ -1,9 +1,10 @@
 const Patient = require("../models/patients");
 const Doctor = require("../models/doctors");
 const Consultation = require("../models/consulations");
+const Prescript = require("../models/prescriptions");
 const fs = require("fs");
 const jwt = require("jsonwebtoken");
-
+const pdfService = require("../util/pdfbuild");
 require("dotenv").config();
 
 function isstringinvalid(string) {
@@ -18,10 +19,15 @@ function isstringinvalid(string) {
 const signup = async (req, res) => {
   console.log(req.file);
   try {
+    // form.parse(req, (err, fields, files) => {
+    //   console.log("fields: ", fields);
+    //   console.log("files: ", files);
+    //   res.send({ success: true });
+    // });
     const { name, speciality, email, phoneNo, experience, password } = req.body;
     let imgUrl;
     if (req.file) {
-      imgUrl = `storage/images/${req.file.filename}`;
+      imgUrl = `storage/images/${req.file[0].filename}`;
     }
     console.log("email", email);
     if (
@@ -46,6 +52,37 @@ const signup = async (req, res) => {
     res.status(500).json(err);
   }
 };
+// const signup = async (req, res) => {
+//   console.log(req.file);
+//   try {
+//     const { name, speciality, email, phoneNo, experience, password } = req.body;
+//     let imgUrl;
+//     if (req.file) {
+//       imgUrl = `storage/images/${req.file.filename}`;
+//     }
+//     console.log("email", email);
+//     if (
+//       isstringinvalid(name) ||
+//       isstringinvalid(email || isstringinvalid(password))
+//     ) {
+//       return res
+//         .status(400)
+//         .json({ err: "Bad parameters . Something is missing" });
+//     }
+//     await Doctor.create({
+//       profileImage: imgUrl,
+//       name,
+//       speciality,
+//       email,
+//       phoneNo,
+//       experience,
+//       password,
+//     });
+//     res.status(201).json({ message: "Doctor registered successfully" });
+//   } catch (err) {
+//     res.status(500).json(err);
+//   }
+// };
 
 const generateAccessToken = (id, name) => {
   return jwt.sign({ doctorId: id, name: name }, "secretkey");
@@ -119,9 +156,76 @@ const getDetails = async (req, res) => {
     res.status(500).json(err);
   }
 };
+
+//Creating new prescriptions by doctor
+const createPrescriptions = async (req, res) => {
+  console.log(req.body.doctor);
+  try {
+    const patientId = req.params.id;
+    const { care, medicines, doctor } = req.body;
+
+    await Prescript.create({
+      care,
+      medicines,
+      doctor,
+      patientId,
+    });
+    res.status(201).json({ message: "Prescription generated successfully" });
+  } catch (err) {
+    res.status(500).json(err);
+  }
+};
+
+const getPrescription = async (req, res) => {
+  let drname = req.params.name;
+  try {
+    const prescripts = await Prescript.findAll({
+      where: { doctor: drname },
+    });
+    res.status(200).json(prescripts);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json(err);
+  }
+};
+
+const updateprescriptions = async (req, res) => {
+  let drname = req.params.name;
+  const { care, medicines } = req.body;
+  try {
+    await Prescript.update(
+      { care: care, medicines: medicines },
+      {
+        where: {
+          doctor: drname,
+        },
+      }
+    );
+    res.status(200).json({ message: "Prescription updated successfully" });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json(err);
+  }
+};
+
+const downloadPDF = (req, res) => {
+  const stream = res.writeHead(200, {
+    "Content-Type": "application/pdf",
+    "Content-Disposition": "attachment;filename=prescription.pdf",
+  });
+  pdfService.buildPDF(
+    (chunk) => stream.write(chunk),
+    () => stream.end()
+  );
+};
+
 module.exports = {
   signup,
   login,
   getConsultation,
   getDetails,
+  createPrescriptions,
+  getPrescription,
+  updateprescriptions,
+  downloadPDF,
 };

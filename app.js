@@ -5,15 +5,19 @@ var cors = require("cors");
 const sequelize = require("./util/database");
 const multer = require("multer");
 
+//models
 const Patient = require("./models/patients");
 const Doctor = require("./models/doctors");
+const Consultation = require("./models/consulations");
+const Prescript = require("./models/prescriptions");
 
+//routes
 const patientRoutes = require("./routes/patient");
 const doctorRoutes = require("./routes/doctor");
 
 const app = express();
+
 const dotenv = require("dotenv");
-const Consultation = require("./models/consulations");
 
 // get config vars
 dotenv.config();
@@ -22,10 +26,73 @@ app.use(cors());
 
 app.use(express.json()); //this is for handling jsons
 
-// app.use("/patient", express.static("storage/images"));
-// app.use("/doctor", express.static("storage/images"));
+const storage = multer.diskStorage({
+  destination: (req, file, callBack) => {
+    callBack(null, "public");
+  },
+  filename: (req, file, callBack) => {
+    callBack(null, `${Date.now()}-${file.originalname}`);
+  },
+});
 
-app.use("/patient/", express.static(path.join(__dirname, "storage/images")));
+const upload = multer({ storage });
+
+//Doctor Signup Code
+app.post("/doctor/signup", upload.single("profileImage"), async (req, res) => {
+  try {
+    console.log(req.body);
+    console.log(req.file);
+    const { name, speciality, email, phoneNo, experience, password } = req.body;
+
+    const profile = req.file;
+    await Doctor.create({
+      profileImage: profile.path,
+      name,
+      speciality,
+      email,
+      phoneNo,
+      experience,
+      password,
+    });
+    res.status(201).json({ message: "Doctor registered successfully" });
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+//Patient Signup Code
+app.post("/patient/signup", upload.single("profileImage"), async (req, res) => {
+  try {
+    const {
+      name,
+      age,
+      email,
+      phoneNo,
+      historyOfSurgery,
+      historyOfIllness,
+      password,
+    } = req.body;
+
+    const profile = req.file;
+    console.log(profile.path);
+    await Patient.create({
+      profileImage: profile.path,
+      name,
+      age,
+      email,
+      phoneNo,
+      historyOfSurgery,
+      historyOfIllness,
+      password,
+    });
+    res.status(201).json({ message: "Patient registered successfully" });
+  } catch (err) {
+    res.status(500).json(err);
+  }
+});
+
+//serving of static folders
+app.use("/patient/public", express.static(path.join(__dirname, "public")));
 
 app.use("/patient", patientRoutes);
 app.use("/doctor", doctorRoutes);
@@ -33,26 +100,6 @@ app.use("/doctor", doctorRoutes);
 Doctor.hasMany(Patient);
 Doctor.hasMany(Consultation);
 
-// Middleware to handle multer errors
-app.use((err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    return res.status(418).json({
-      err_code: err.code,
-      err_message: err.message,
-    });
-  } else {
-    return res.status(500).json({
-      err_code: 409,
-      err_message: "Something went wrong",
-    });
-  }
-});
-
-app.get("/", (req, res) => {
-  res.send({
-    message: "Welcome",
-  });
-});
 sequelize
   .sync()
   .then(() => {
