@@ -101,7 +101,7 @@ Doctor.hasMany(Patient);
 Doctor.hasMany(Consultation);
 
 sequelize
-  .sync({force:true})
+  .sync()
   .then(() => {
     app.listen(3001);
   })
